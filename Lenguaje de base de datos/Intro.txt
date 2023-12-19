@@ -1,0 +1,84 @@
+/*DDL - Data Definition Language*/
+
+--ALTER: ALTERA LA ESTRUCTURA DE LA BASE DE DATOS
+ALTER TABLE EMPLOYEES ADD C2 VARCHAR2(50) NULL;
+
+--CREATE: CREAR OBJETOS EN LA BD
+CREATE TABLE T3 (C1 NUMBER NULL);
+
+--DROP: ELIMINA OBJETOS DE LA BD
+DROP TABLE T3;
+
+--COMMENT: AGREGAR COMENTARIOS AL DICCIONARIO DE DATOS
+COMMENT ON COLUMN EMPLOYEES.C2 IS 'COMENTARIO DE PRUEBA';
+
+--TRUNCATE: ELIMINAR TODOS LOS REGISTROS DE UNA TABLA, INCLUYENDO LOS ESPACIOS ASIGNADOS A LOS REGISTROS.
+TRUNCATE TABLE T3;
+
+--RENAME: CAMBIAR EL NOMBRE DE UN OBJETO
+RENAME T3 TO T4;
+---------------------------------------------------------------
+/*DML - Data Manipulation Language*/
+
+--INSERT: A adir filas de datos a una tabla
+INSERT INTO T4 VALUES(45);
+COMMIT;
+
+--DELETE: Eliminar filas de datos de una tabla
+DELETE FROM T4;
+COMMIT;
+
+--UPDATE: Modificar los datos de una tabla
+UPDATE TABLE T4 SET C1 = 99;
+COMMIT;
+
+--SELECT: Recuperar datos de una tabla
+SELECT * FROM EMPLOYEES;
+
+SELECT FIRST_NAME, LAST_NAME
+FROM EMPLOYEES
+WHERE SALARY > 48000;
+
+--CALL: LLamar a un c digo PL/SQL
+CALL mi_procedimiento(arg1, arg2);
+
+--MERGE: Operaci n de tipo "upsert" (INSERT/UPDATE)
+MERGE INTO EMPLOYEES e
+USING (SELECT * FROM JOB_HISTORY WHERE START_DATE > ADD_MONTHS (SYSDATE, -1)) h
+ON (e.EMPLOYEE_ID = h.EMPLOYEE_ID)
+WHEN MATCHED THEN
+UPDATE SET e.DEPARTMENT_ID = h.DEPARTMENT_ID
+WHEN NOT MATCHED THEN
+INSERT (EMPLOYEE_ID, DEPARTMENT_ID) VALUES (h.EMPLOYEE_ID, h.DEPARTMENT_ID);
+
+/*DCL - Data Control Language*/
+
+--GRANT: Conceder privilegios o papeles o roles a un usuario.
+GRANT CONNECT TO profe;
+
+GRANT ALL PRIVILEGES TO hr;
+
+--REVOKE: retirar los privilegios de un usuario o rol de la BD.
+REVOKE CONNECT FROM profe;
+
+/*TCL - Transaction Control Language*/
+-- COMMIT: guardar el trabajo realizado
+INSERT INTO regions VALUES(5,'Antarctica');
+COMMIT;
+
+--ROLLBACK: Restaurar la base de datos hasta el  ltimo COMMIT
+INSERT INTO regions VALUES(5,'Antarctica');
+ROLLBACK;
+
+--SAVEPOINT: identifica un punto en una transacci n a la que m s tarde se puede volver
+UPDATE EMPLOYEES
+SET SALARY = 7000
+WHERE LAST_NAME = 'Banda';
+SAVEPOINT banda_sal;
+
+UPDATE EMPLOYEES
+SET SALARY = 12000
+WHERE LAST_NAME = 'Greene';
+SAVEPOINT greene_sal;
+
+ROLLBACK TO SAVEPOINT banda_sal;

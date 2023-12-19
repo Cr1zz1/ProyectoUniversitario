@@ -1,0 +1,752 @@
+/*
+Grupo#4
+Practica 04
+1-Steven Cruz Jimenez
+2-Jean Carlos Orozco Mendez
+3-Cristofer Andres Marin Lazo
+4-Herberth Rojas Arce
+*/
+SET SERVEROUTPUT ON;
+/*
+1.	Crear una función que devuelva la cantidad de meses que ha laborado el empleado que se envíe por parámetro 
+*/
+CREATE OR REPLACE FUNCTION calcular_meses_laborados(p_employee_id NUMBER)
+RETURN NUMBER
+IS
+    v_hire_date DATE;
+    v_today DATE := SYSDATE;  
+    v_meses_trabajados NUMBER;
+BEGIN
+    SELECT hire_date INTO v_hire_date
+    FROM Employees
+    WHERE employee_id = p_employee_id;
+
+  
+    v_meses_trabajados := MONTHS_BETWEEN(v_today, v_hire_date);
+
+    RETURN v_meses_trabajados;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Empleado no encontrado.');
+        RETURN NULL;
+END;
+/
+EXEC DBMS_OUTPUT.PUT_LINE('Meses laborados: ' || calcular_meses_laborados(100));
+
+/*
+2.	Crear una función que duplique en valor del número enviado en caso de que sea par o que lo triplique en caso de que sea impar.
+*/
+CREATE OR REPLACE FUNCTION duplicar_o_triplicar(p_numero NUMBER)
+RETURN NUMBER
+IS
+    v_resultado NUMBER;
+BEGIN
+    IF MOD(p_numero, 2) = 0 THEN
+        
+        v_resultado := p_numero * 2;
+    ELSE
+      
+        v_resultado := p_numero * 3;
+    END IF;
+
+    
+    RETURN v_resultado;
+END;
+
+--Bloque anonimo
+DECLARE
+    v_numero NUMBER := 5; 
+    v_resultado NUMBER;
+BEGIN
+    v_resultado := duplicar_o_triplicar(v_numero);
+    DBMS_OUTPUT.PUT_LINE('Resultado: ' || v_resultado);
+END;
+/
+
+/*
+3.	Utilizando un cursor  liste los empleados del job_id que el usuario envié por parámetro.
+*/
+CREATE OR REPLACE PROCEDURE listar_empleados_por_job(p_job_id VARCHAR2)
+IS
+  
+    CURSOR empleados_cursor (p_job_id_param VARCHAR2) IS
+        SELECT employee_id, first_name, last_name, job_id
+        FROM employees
+        WHERE job_id = p_job_id_param;
+
+ 
+    v_employee_id employees.employee_id%TYPE;
+    v_first_name employees.first_name%TYPE;
+    v_last_name employees.last_name%TYPE;
+    v_job_id employees.job_id%TYPE;
+
+BEGIN
+    
+    OPEN empleados_cursor(p_job_id);
+
+
+    LOOP
+    
+        FETCH empleados_cursor INTO v_employee_id, v_first_name, v_last_name, v_job_id;
+
+        EXIT WHEN empleados_cursor%NOTFOUND;
+
+
+        DBMS_OUTPUT.PUT_LINE('Employee ID: ' || v_employee_id || ', Nombre: ' || v_first_name || ' ' || v_last_name || ', Job ID: ' || v_job_id);
+    END LOOP;
+
+
+    CLOSE empleados_cursor;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+
+        DBMS_OUTPUT.PUT_LINE('No se encontraron empleados con el Job ID: ' || p_job_id);
+END;
+/
+
+--Busqueda
+BEGIN
+    listar_empleados_por_job('IT_PROG'); 
+END;
+/
+
+/*
+4.	Desarrolle una función a la que se le envié por parámetro el número de departamento e imprima en pantalla la cantidad de empleados que integran ese departamento.
+*/
+CREATE OR REPLACE FUNCTION contar_empleados_por_departamento(p_department_id NUMBER)
+RETURN NUMBER
+IS
+    v_cantidad_empleados NUMBER;
+
+BEGIN
+  
+    SELECT COUNT(*) INTO v_cantidad_empleados
+    FROM employees
+    WHERE department_id = p_department_id;
+
+   
+    DBMS_OUTPUT.PUT_LINE('Cantidad de empleados en el departamento ' || p_department_id || ': ' || v_cantidad_empleados);
+
+   
+    RETURN v_cantidad_empleados;
+END;
+
+--Bloque anonimo
+DECLARE
+    v_cantidad NUMBER;
+BEGIN
+    v_cantidad := contar_empleados_por_departamento(10); 
+END;
+
+/*
+5.	Utilizando un cursor crear un SP que imprima en pantalla la fecha de contratación para la tabla de empleados formateada a la siguiente hilera :
+    Hoy es miércoles 8 de julio del 2015.
+*/
+CREATE OR REPLACE PROCEDURE imprimir_fecha_contratacion
+IS
+   
+    v_hire_date employees.hire_date%TYPE;
+
+   
+    CURSOR fechas_cursor IS
+        SELECT hire_date
+        FROM employees;
+
+BEGIN
+   
+    OPEN fechas_cursor;
+
+    
+    LOOP
+        
+        FETCH fechas_cursor INTO v_hire_date;
+
+        
+        EXIT WHEN fechas_cursor%NOTFOUND;
+
+       
+        DBMS_OUTPUT.PUT_LINE('Hoy es ' || TO_CHAR(v_hire_date, 'Day DD "de" Month "del" YYYY', 'NLS_DATE_LANGUAGE=spanish'));
+    END LOOP;
+
+   
+    CLOSE fechas_cursor;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+       
+        DBMS_OUTPUT.PUT_LINE('No se encontraron fechas de contratación.');
+END;
+
+--Busqueda
+BEGIN
+    imprimir_fecha_contratacion;
+END;
+
+/*
+6.	Crear un procedimiento almacenado con cursor con ciclo FOR que actualice el salario en un 10% cuando este sea menor al del promedio del departamento que pertenece, debe de imprimir en pantalla cuantos salarios se actualizaron.
+*/
+CREATE OR REPLACE PROCEDURE actualizar_salarios
+IS
+   
+    v_department_id employees.department_id%TYPE;
+    v_avg_salary NUMBER;
+    v_count_updated_salaries NUMBER := 0;
+
+BEGIN
+    
+    FOR dept_rec IN (SELECT department_id, AVG(salary) AS avg_salary
+                     FROM employees
+                     GROUP BY department_id)
+    LOOP
+        
+        v_department_id := dept_rec.department_id;
+        v_avg_salary := dept_rec.avg_salary;
+
+
+        FOR emp_rec IN (SELECT employee_id, salary
+                        FROM employees
+                        WHERE department_id = v_department_id
+                        AND salary < v_avg_salary)
+        LOOP
+            -- Actualizar salario en un 10%
+            UPDATE employees
+            SET salary = salary * 1.1
+            WHERE employee_id = emp_rec.employee_id;
+
+          
+            v_count_updated_salaries := v_count_updated_salaries + 1;
+        END LOOP;
+    END LOOP;
+
+
+    DBMS_OUTPUT.PUT_LINE('Se actualizaron ' || v_count_updated_salaries || ' salarios.');
+
+END;
+
+--Busqueda
+BEGIN
+    actualizar_salarios;
+END;
+
+/*
+7.	Crear un SP que utilice un cursor y permita mostrar ordenados por el número de empleado, nombre, departamento de todos los empleados de la tabla empleados
+*/
+CREATE OR REPLACE PROCEDURE mostrar_empleados
+IS
+    
+    CURSOR empleados_cursor IS
+        SELECT employee_id, first_name, last_name, department_id
+        FROM employees
+        ORDER BY employee_id;
+
+BEGIN
+    
+    OPEN empleados_cursor;
+
+  
+    DBMS_OUTPUT.PUT_LINE('Número de Empleado | Nombre | Departamento');
+    DBMS_OUTPUT.PUT_LINE('------------------|--------|--------------');
+
+    
+    FOR emp_rec IN empleados_cursor
+    LOOP
+       
+        DBMS_OUTPUT.PUT_LINE(
+            RPAD(emp_rec.employee_id, 18) || ' | ' ||
+            RPAD(emp_rec.first_name || ' ' || emp_rec.last_name, 8 + 2 + 8) || ' | ' ||
+            RPAD(emp_rec.department_id, 14)
+        );
+    END LOOP;
+
+   
+    CLOSE empleados_cursor;
+
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        
+        DBMS_OUTPUT.PUT_LINE('No se encontraron empleados.');
+
+END;
+commit;
+
+--Bloque anonimo
+BEGIN
+    mostrar_empleados;
+END;
+
+
+/*
+8.	Desarrolle un procedimiento almacenado que permita conocer el número de departamentos por región y los imprima en pantalla.
+*/
+CREATE OR REPLACE PROCEDURE contar_departamentos_por_region
+IS
+BEGIN
+    
+    DBMS_OUTPUT.PUT_LINE('Región | Cantidad de Departamentos');
+    DBMS_OUTPUT.PUT_LINE('-------|---------------------------');
+
+
+    FOR reg_rec IN (SELECT DISTINCT r.region_id, r.region_name
+                    FROM regions r
+                    JOIN departments d ON r.region_id = d.region_id)
+    LOOP
+
+        DECLARE
+            v_cantidad_departamentos NUMBER;
+        BEGIN
+            SELECT COUNT(*) INTO v_cantidad_departamentos
+            FROM departments
+            WHERE region_id = reg_rec.region_id;
+
+         
+            DBMS_OUTPUT.PUT_LINE(
+                RPAD(reg_rec.region_name, 7) || ' | ' ||
+                TO_CHAR(v_cantidad_departamentos, '999')
+            );
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+    
+                DBMS_OUTPUT.PUT_LINE(
+                    RPAD(reg_rec.region_name, 7) || ' | ' ||
+                    TO_CHAR(0, '999')
+                );
+        END;
+    END LOOP;
+
+EXCEPTION
+    WHEN OTHERS THEN
+  
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END;
+
+--busqueda
+BEGIN
+    hr.contar_departamentos_por_region;
+END;
+
+
+
+
+/*
+9.	Desarrolle unas función que devuelva la cantidad de empleados del departamento que se envíe por parámetro.
+*/
+CREATE OR REPLACE FUNCTION contar_empleados_por_departamento(p_department_id NUMBER)
+RETURN NUMBER
+IS
+   
+    v_cantidad_empleados NUMBER;
+
+BEGIN
+  
+    SELECT COUNT(*) INTO v_cantidad_empleados
+    FROM employees
+    WHERE department_id = p_department_id;
+
+
+    RETURN v_cantidad_empleados;
+END;
+
+-- Bloque anónimo PL/SQL
+DECLARE
+    v_cantidad NUMBER;
+BEGIN
+    v_cantidad := contar_empleados_por_departamento(10);
+    DBMS_OUTPUT.PUT_LINE('Cantidad de empleados en el departamento: ' || v_cantidad);
+END;
+
+
+
+SELECT contar_empleados_por_departamento(20) AS cantidad_empleados
+FROM dual;
+
+/*
+10.	Crear un procedimiento almacenado que simule una tabla de multiplicar en sentido inverso. El procedimiento recibe por parámetro del multiplicador.
+*/
+CREATE OR REPLACE PROCEDURE tabla_multiplicar_inversa(p_multiplicador NUMBER)
+IS
+ 
+    v_multiplicando NUMBER := 10;  -- Comenzamos desde 10 (la última fila de la tabla)
+    v_resultado NUMBER;
+
+BEGIN
+    
+    DBMS_OUTPUT.PUT_LINE('Tabla de Multiplicar Inversa para ' || p_multiplicador);
+    DBMS_OUTPUT.PUT_LINE('---------------------------------');
+
+   
+    FOR i IN REVERSE 1..10
+    LOOP
+        v_resultado := p_multiplicador * v_multiplicando;
+
+    
+        DBMS_OUTPUT.PUT_LINE(v_multiplicando || ' * ' || p_multiplicador || ' = ' || v_resultado);
+
+  
+        v_multiplicando := v_multiplicando - 1;
+    END LOOP;
+
+EXCEPTION
+    WHEN OTHERS THEN
+       
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END;
+
+--Bloque anonimo
+BEGIN
+    tabla_multiplicar_inversa(5); 
+END;
+
+/*
+11.	Crear un procedimiento que por medio de un cursor  de sistema extraiga los datos del código de empleado y el nombre.
+*/
+
+CREATE OR REPLACE PROCEDURE Extraer_Datos_Empleado
+AS
+  CURSOR employee_id IS
+    SELECT employee_id, first_name
+    FROM employees; 
+
+  v_employee_id employees.employee_id%TYPE;
+  v_first_name employees.first_name%TYPE;
+
+BEGIN
+  OPEN employee_id;
+  LOOP
+    FETCH employee_id INTO v_employee_id, v_first_name;
+    EXIT WHEN employee_id%NOTFOUND;
+
+        DBMS_OUTPUT.PUT_LINE('Código de Empleado: ' || v_employee_id || ', Nombre: ' || v_first_name);
+  END LOOP;
+  CLOSE employee_id;
+  
+EXCEPTION
+  WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE('Error: ' || SQLCODE || ' - ' || SQLERRM);
+END Extraer_Datos_Empleado;
+/
+
+BEGIN
+  Extraer_Datos_Empleado;
+END;
+/
+
+
+/*
+12.	Crear un procedimiento que utilice un cursor con ciclo FOR y muestra los salarios de la tabla hr.employees que sean menores o iguales al parámetro de salario dado por el usuario, el llamado de este procedimiento debe de hacerse de otro procedimiento e imprimir los resultados en el procedimiento que llama.
+*/
+
+CREATE OR REPLACE PROCEDURE mostrar_salarios(p_salario_maximo IN NUMBER) AS
+  v_employee_id employees.employee_id%TYPE;
+  v_first_name employees.first_name%TYPE;
+  v_last_name employees.last_name%TYPE;
+  v_salary employees.salary%TYPE;
+
+  CURSOR c_empleados IS
+    SELECT employee_id, first_name, last_name, salary
+    FROM employees
+    WHERE salary <= p_salario_maximo;
+
+BEGIN
+  IF c_empleados%ISOPEN THEN
+    CLOSE c_empleados;
+  END IF;
+
+  OPEN c_empleados;
+
+  LOOP
+    FETCH c_empleados INTO v_employee_id, v_first_name, v_last_name, v_salary;
+    EXIT WHEN c_empleados%NOTFOUND;
+
+    DBMS_OUTPUT.PUT_LINE('Empleado ID: ' || v_employee_id ||
+                         ', Nombre: ' || v_first_name || ' ' || v_last_name ||
+                         ', Salario: ' || v_salary);
+  END LOOP;
+
+  CLOSE c_empleados;
+END mostrar_salarios;
+/
+
+CREATE OR REPLACE PROCEDURE llamar_mostrar_salarios(p_salario_maximo IN NUMBER) AS
+BEGIN
+  mostrar_salarios(p_salario_maximo);
+END llamar_mostrar_salarios;
+/
+
+
+BEGIN
+  llamar_mostrar_salarios(5000);
+END;
+/
+
+
+/*
+13.	Crear un bloque DE PL/SQL que imprima en pantalla el nombre del MANAGER y nombre de departamento del empleado que el usuario envié por pantalla e imprima el nombre de todos los empleados bajo su cargo.
+*/
+
+DECLARE
+    v_employee_id employees.employee_id%TYPE;
+    v_manager_id employees.first_name%TYPE;
+    v_department_name departments.department_name%TYPE;
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Ingrese el ID del empleado');
+    v_employee_id := TO_NUMBER('&v_employee_id');
+
+    SELECT e.first_name || ' ' || e.last_name, d.department_name
+    INTO v_manager_id, v_department_name
+    FROM employees e
+    JOIN departments d ON e.department_id = d.department_id
+    WHERE e.employee_id = v_employee_id;
+
+    DBMS_OUTPUT.PUT_LINE('Nombre del Manager: ' || v_manager_id);
+    DBMS_OUTPUT.PUT_LINE('Nombre del Departamento: ' || v_department_name);
+
+    DBMS_OUTPUT.PUT_LINE('Empleados bajo su cargo:');
+
+    FOR empleado_rec IN (SELECT e.first_name || ' ' || e.last_name AS nombre
+                        FROM employees e
+                        WHERE e.manager_id = v_employee_id)
+    LOOP
+        DBMS_OUTPUT.PUT_LINE(empleado_rec.nombre);
+    END LOOP;
+END;
+/
+
+
+/*
+14.	Crear una función donde se desplieguen los empleados concatenados que tengan como primera letra del nombre o del apellido la letra que le usuario envié como parámetros. 
+*/
+
+CREATE OR REPLACE FUNCTION obtener_empleados_por_letra (
+    p_letra IN CHAR
+) RETURN VARCHAR2
+IS
+    v_resultado VARCHAR2(4000);
+BEGIN
+    FOR empleado IN (SELECT FIRST_NAME || ' ' || LAST_NAME AS nombre_completo
+                     FROM EMPLOYEES
+                     WHERE UPPER(SUBSTR(FIRST_NAME, 1, 1)) = UPPER(p_letra)
+                        OR UPPER(SUBSTR(LAST_NAME, 1, 1)) = UPPER(p_letra))
+    LOOP
+        v_resultado := v_resultado || empleado.nombre_completo || ', ';
+    END LOOP;
+
+    -- Eliminar la última coma y espacio si existen
+    IF LENGTH(v_resultado) > 0 THEN
+        v_resultado := RTRIM(v_resultado, ', ');
+    END IF;
+
+    RETURN v_resultado;
+END obtener_empleados_por_letra;
+/
+
+
+DECLARE
+    v_resultado VARCHAR2(4000);
+BEGIN
+    v_resultado := obtener_empleados_por_letra('B');
+    DBMS_OUTPUT.PUT_LINE('Empleados con nombres o apellidos que comienzan con B: ' || v_resultado);
+END;
+/
+
+
+/*
+15.	Crear los SP que permitan listar de toda la tabla employees los empleados por manager, la impresión debe de quedar de la siguiente forma:
+-	Joe Elliot
+-	Rick Savage
+-	Rick Allen
+-	Phil Collen
+-	Vivian Campbell
+
+-	David Gahan
+-	 Martin Gore
+-	 Andrew Fletcher.
+*/
+
+CREATE OR REPLACE PROCEDURE listar_empleados_por_manager AS
+  v_manager_id NUMBER;
+  v_manager_name VARCHAR2(50);
+  v_employee_name VARCHAR2(100);
+
+  CURSOR c_managers IS
+    SELECT DISTINCT manager_id
+    FROM employees
+    WHERE manager_id IS NOT NULL;
+
+  CURSOR c_employees(p_manager_id NUMBER) IS
+    SELECT employee_id, first_name, last_name
+    FROM employees
+    WHERE manager_id = p_manager_id;
+
+BEGIN
+  FOR manager_rec IN c_managers LOOP
+    SELECT first_name || ' ' || last_name INTO v_manager_name
+    FROM employees
+    WHERE employee_id = manager_rec.manager_id;
+
+    DBMS_OUTPUT.PUT_LINE(v_manager_name);
+
+    FOR employee_rec IN c_employees(manager_rec.manager_id) LOOP
+      -- Obtener el nombre del empleado
+      v_employee_name := employee_rec.first_name || ' ' || employee_rec.last_name;
+
+      DBMS_OUTPUT.PUT_LINE('   ' || v_employee_name);
+    END LOOP;
+
+    DBMS_OUTPUT.PUT_LINE('');
+  END LOOP;
+END listar_empleados_por_manager;
+/
+
+
+SET SERVEROUTPUT ON;
+EXEC listar_empleados_por_manager;
+
+
+/*16.	Crear un procedimiento que por medio de un cursor de sistema llame a otro procedimiento y 
+extraiga los datos del código de empleado, nombre del departamento para los empleados cuyo nombre inicie con
+P como segunda letra puede tener una (i, a, e) y como penúltima una “a” o una ”e” haga uso de excepciones y guárdelas en una tabla de auditoria.
+*/
+
+
+
+/*17.	Crear un procedimiento que por medio de un cursor de sistema llame 
+a otro procedimiento y 
+extraiga los datos del código de empleado y el nombre.*/
+
+
+CREATE OR REPLACE PROCEDURE procedimiento_secundario(
+    p_employee_id IN employees.employee_id%TYPE,
+    p_first_name IN employees.first_name%TYPE
+) AS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Procedimiento ejecutado para el empleado ' || p_employee_id || ' con nombre ' || p_first_name);
+END procedimiento_secundario;
+
+
+CREATE OR REPLACE PROCEDURE procedimiento_principal AS
+BEGIN
+    FOR emp IN (SELECT employee_id, first_name FROM employees) LOOP
+        procedimiento_secundario(emp.employee_id, emp.first_name);
+    END LOOP;
+EXCEPTION
+    WHEN OTHERS THEN
+
+        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+END procedimiento_principal;
+
+
+BEGIN
+    procedimiento_principal;
+END;
+/
+
+/*18.	Crear un procedimiento que utilice un cursor de sistema y muestra el nombre y fecha de los empleados unieron e la
+empresa entre 2002 y 2005, el llamado de este procedimiento debe de hacerse de otro procedimiento e imprimir los resultados en el procedimiento que llama*/
+
+CREATE OR REPLACE PROCEDURE mostrar_empleados_entre_fechas AS
+BEGIN
+    FOR emp IN (SELECT employee_id, first_name, hire_date
+                FROM employees
+                WHERE hire_date BETWEEN TO_DATE('01-01-2002', 'DD-MM-YYYY') AND TO_DATE('31-12-2005', 'DD-MM-YYYY')) LOOP
+        DBMS_OUTPUT.PUT_LINE('Employee ID: ' || emp.employee_id || ', Name: ' || emp.first_name || ', Hire Date: ' || TO_CHAR(emp.hire_date, 'DD-MON-YYYY'));
+    END LOOP;
+END mostrar_empleados_entre_fechas;
+
+CREATE OR REPLACE PROCEDURE procedimiento_principal AS
+BEGIN
+    DBMS_OUTPUT.PUT_LINE('Mostrando empleados entre 2002 y 2005:');
+    mostrar_empleados_entre_fechas;
+END procedimiento_principal;
+
+BEGIN
+    procedimiento_principal;
+END;
+/
+
+
+/*19.	Crear un procedimiento almacenado que extraiga por medio de un cursor de 
+sistema la información de id empleado, puesto, salario, años de laborar en la empresa, teléfono, ciudad y país donde vive y que lo imprima en pantalla.*/
+
+--FALTA CIUDAD, PAIS
+
+CREATE OR REPLACE PROCEDURE MOSTRAR_INFORMACION_EMPLEADOS AS
+    TYPE EmployeeRecord IS RECORD (
+        employee_id employees.employee_id%TYPE,
+        job_id employees.job_id%TYPE,
+        salary employees.salary%TYPE,
+        hire_date employees.hire_date%TYPE,
+        phone_number employees.phone_number%TYPE,
+        department_id employees.department_id%TYPE
+    );
+
+    emp_record EmployeeRecord;
+
+BEGIN
+    FOR emp IN (SELECT employee_id, job_id, salary, hire_date, phone_number, department_id
+                FROM employees) LOOP
+        emp_record.employee_id := emp.employee_id;
+        emp_record.job_id := emp.job_id;
+        emp_record.salary := emp.salary;
+        emp_record.hire_date := emp.hire_date;
+        emp_record.phone_number := emp.phone_number;
+        emp_record.department_id := emp.department_id;
+
+        DBMS_OUTPUT.PUT_LINE('ID Empleado: ' || emp_record.employee_id);
+        DBMS_OUTPUT.PUT_LINE('Puesto: ' || emp_record.job_id);
+        DBMS_OUTPUT.PUT_LINE('Salario: ' || emp_record.salary);
+        DBMS_OUTPUT.PUT_LINE('Años de laborar en la empresa: ' || ROUND(MONTHS_BETWEEN(SYSDATE, emp_record.hire_date) / 12, 2));
+        DBMS_OUTPUT.PUT_LINE('Teléfono: ' || emp_record.phone_number);
+        DBMS_OUTPUT.PUT_LINE('Departamento ID: ' || emp_record.department_id);
+        DBMS_OUTPUT.PUT_LINE('---------------------');
+    END LOOP;
+END MOSTRAR_INFORMACION_EMPLEADOS;
+/
+
+BEGIN
+    MOSTRAR_INFORMACION_EMPLEADOS;
+END;
+/
+
+
+DESCRIBE EMPLOYEES;
+
+
+/*20.	Crear un procedimiento almacenado q utilice un cursor para extraer los datos y q calcule y  le aumente el salario a los empleados en un 15% que estén por
+debajo del promedio de los salarios de la empresa   y  que además  tengan como experiencia tengan más de 15 años de laborar en la empresa, actualice la tabla de empleados..*/
+
+CREATE OR REPLACE PROCEDURE aumentar_salario AS
+    v_promedio_salario NUMBER;
+    v_fecha_actual DATE;
+BEGIN
+    SELECT AVG(salary) INTO v_promedio_salario FROM employees;
+
+    SELECT SYSDATE INTO v_fecha_actual FROM DUAL;
+
+
+    FOR emp IN (SELECT employee_id, salary, hire_date
+                FROM employees
+                WHERE salary < v_promedio_salario AND
+                      MONTHS_BETWEEN(v_fecha_actual, hire_date) > 180) -- 180 meses = 15 años
+    LOOP
+        DECLARE
+            v_nuevo_salario NUMBER;
+        BEGIN
+            v_nuevo_salario := emp.salary * 1.15;
+
+            UPDATE employees
+            SET salary = v_nuevo_salario
+            WHERE employee_id = emp.employee_id;
+            
+        END;
+    END LOOP;
+END aumentar_salario;
+/
+
+
+BEGIN
+    aumentar_salario;
+END;
+/
+
+SELECT SALARY FROM EMPLOYEES;

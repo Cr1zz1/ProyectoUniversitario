@@ -1,0 +1,475 @@
+
+--Definicion de secuencias
+
+CREATE SEQUENCE Direccion_Seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Sucursal_Seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Pedido_Seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Producto_Seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Empleado_Seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Informacion_Contacto_Seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE Credencial_seq START WITH 1 INCREMENT BY 1;
+
+--Tablas
+
+CREATE TABLE Direccion (
+    Id_Direccion INTEGER PRIMARY KEY,
+    Provincia VARCHAR(50),
+    Canton VARCHAR(50),
+    Distrito VARCHAR(50)
+);
+
+CREATE TABLE Sucursal (
+    Id_Sucursal INTEGER DEFAULT Sucursal_Seq.NEXTVAL PRIMARY KEY,
+    Id_Direccion INTEGER,
+    Nombre_Sucursal VARCHAR(50),
+    Telefono INTEGER,
+    FOREIGN KEY (Id_Direccion) REFERENCES Direccion(Id_Direccion)
+);
+
+CREATE TABLE Pedido (
+    Id_Pedido INTEGER DEFAULT Pedido_Seq.NEXTVAL PRIMARY KEY,
+    Id_Sucursal INTEGER,
+    Descripcion_Pedido VARCHAR(255),
+    Estado_Pedido VARCHAR(50),
+    FOREIGN KEY (Id_Sucursal) REFERENCES Sucursal(Id_Sucursal)
+);
+
+CREATE TABLE Producto (
+    Id_Producto INTEGER DEFAULT Producto_Seq.NEXTVAL PRIMARY KEY,
+    Id_Pedido INTEGER,
+    Nombre_Producto VARCHAR(255),
+    Descripcion_Producto VARCHAR(255),
+    Cantidad_Producto INTEGER,
+    Fecha_Vencimiento DATE,
+    FOREIGN KEY (Id_Pedido) REFERENCES Pedido(Id_Pedido)
+);
+
+CREATE TABLE Empleado (
+    Id_Empleado INTEGER DEFAULT Empleado_Seq.NEXTVAL PRIMARY KEY,
+    Id_Sucursal INTEGER,
+    Nombre_Empleado VARCHAR(255),
+    Apellido_Empleado VARCHAR(255),
+    Estado_Empleado VARCHAR(50),
+    FOREIGN KEY (Id_Sucursal) REFERENCES Sucursal(Id_Sucursal)
+    FOREIGN KEY (id_credencial) REFERENCES credencial(id_credencial)
+);
+
+
+CREATE TABLE Informacion_Contacto (
+    Id_Contacto INTEGER DEFAULT Informacion_Contacto_Seq.NEXTVAL PRIMARY KEY,
+    Id_Empleado INTEGER,
+    Email_Empleado VARCHAR(255),
+    Telefono_Empleado VARCHAR(20),
+    FOREIGN KEY (Id_Empleado) REFERENCES Empleado(Id_Empleado)
+);
+   CREATE TABLE credencial (
+    id_credencial  NUMBER,
+    usuario        VARCHAR2(50),
+    contraseña     VARCHAR2(50),
+    rol_credencial VARCHAR2(50)
+);
+
+
+--Procedimientos almacenados
+
+--CrearSucursal
+CREATE OR REPLACE PROCEDURE CrearSucursal (
+    p_Id_Direccion IN INTEGER,
+    p_Nombre_Sucursal IN VARCHAR2,
+    p_Telefono IN INTEGER
+) AS
+BEGIN
+    INSERT INTO Sucursal (Id_Sucursal, Id_Direccion, Nombre_Sucursal, Telefono)
+    VALUES (Sucursal_Seq.NEXTVAL, p_Id_Direccion, p_Nombre_Sucursal, p_Telefono);
+    COMMIT;
+END CrearSucursal;
+/
+
+--LeerSucursal
+CREATE OR REPLACE PROCEDURE LeerSucursal (
+    p_Id_Sucursal IN INTEGER,
+    p_Id_Direccion OUT INTEGER,
+    p_Nombre_Sucursal OUT VARCHAR2,
+    p_Telefono OUT INTEGER
+) AS
+BEGIN
+    SELECT Id_Direccion, Nombre_Sucursal, Telefono
+    INTO p_Id_Direccion, p_Nombre_Sucursal, p_Telefono
+    FROM Sucursal
+    WHERE Id_Sucursal = p_Id_Sucursal;
+END LeerSucursal;
+/
+
+--ActualizarSucursal
+CREATE OR REPLACE PROCEDURE ActualizarSucursal (
+    p_Id_Sucursal IN INTEGER,
+    p_Id_Direccion IN INTEGER,
+    p_Nombre_Sucursal IN VARCHAR2,
+    p_Telefono IN INTEGER
+) AS
+BEGIN
+    UPDATE Sucursal
+    SET Id_Direccion = p_Id_Direccion,
+        Nombre_Sucursal = p_Nombre_Sucursal,
+        Telefono = p_Telefono
+    WHERE Id_Sucursal = p_Id_Sucursal;
+    COMMIT;
+END ActualizarSucursal;
+/
+
+--EliminarSucursal
+CREATE OR REPLACE PROCEDURE EliminarSucursal (
+    p_Id_Sucursal IN INTEGER
+) AS
+BEGIN
+    DELETE FROM Sucursal WHERE Id_Sucursal = p_Id_Sucursal;
+    COMMIT;
+END EliminarSucursal;
+/
+
+--Procedimientos para Direccion
+
+--Creardireccion
+CREATE OR REPLACE PROCEDURE CrearDireccion (
+    p_Provincia IN VARCHAR2,
+    p_Canton IN VARCHAR2,
+    p_Distrito IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO Direccion (Id_Direccion, Provincia, Canton, Distrito)
+    VALUES (Direccion_Seq.NEXTVAL, p_Provincia, p_Canton, p_Distrito);
+    COMMIT;
+END CrearDireccion;
+/
+
+Exec CrearDireccion( 'San Jose', 'Alajuelita', 'San Josecito');
+
+--LeerDireccion 
+
+CREATE OR REPLACE PROCEDURE LeerDireccion (
+    p_Id_Direccion IN INTEGER,
+    p_Provincia OUT VARCHAR2,
+    p_Canton OUT VARCHAR2,
+    p_Distrito OUT VARCHAR2
+) AS
+BEGIN
+    SELECT Provincia, Canton, Distrito
+    INTO p_Provincia, p_Canton, p_Distrito
+    FROM Direccion
+    WHERE Id_Direccion = p_Id_Direccion;
+END LeerDireccion;
+/
+
+--ActualixarDireccion
+CREATE OR REPLACE PROCEDURE ActualizarDireccion (
+    p_Id_Direccion IN INTEGER,
+    p_Provincia IN VARCHAR2,
+    p_Canton IN VARCHAR2,
+    p_Distrito IN VARCHAR2
+) AS
+BEGIN
+    UPDATE Direccion
+    SET Provincia = p_Provincia, Canton = p_Canton, Distrito = p_Distrito
+    WHERE Id_Direccion = p_Id_Direccion;
+    COMMIT;
+END ActualizarDireccion;
+/
+--Eliminar Direccion
+CREATE OR REPLACE PROCEDURE EliminarDireccion (
+    p_Id_Direccion IN INTEGER
+) AS
+BEGIN
+    DELETE FROM Direccion WHERE Id_Direccion = p_Id_Direccion;
+    COMMIT;
+END EliminarDireccion;
+/
+
+--Procedimientos Pedido 
+
+--CrearPedido 
+CREATE OR REPLACE PROCEDURE CrearPedido (
+    p_Id_Sucursal IN INTEGER,
+    p_Descripcion_Pedido IN VARCHAR2,
+    p_Estado_Pedido IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO Pedido (Id_Pedido, Id_Sucursal, Descripcion_Pedido, Estado_Pedido)
+    VALUES (Pedido_Seq.NEXTVAL, p_Id_Sucursal, p_Descripcion_Pedido, p_Estado_Pedido);
+    COMMIT;
+END CrearPedido;
+/
+
+--LeerPedido
+CREATE OR REPLACE PROCEDURE LeerPedido (
+    p_Id_Pedido IN INTEGER,
+    p_Id_Sucursal OUT INTEGER,
+    p_Descripcion_Pedido OUT VARCHAR2,
+    p_Estado_Pedido OUT VARCHAR2
+) AS
+BEGIN
+    SELECT Id_Sucursal, Descripcion_Pedido, Estado_Pedido
+    INTO p_Id_Sucursal, p_Descripcion_Pedido, p_Estado_Pedido
+    FROM Pedido
+    WHERE Id_Pedido = p_Id_Pedido;
+END LeerPedido;
+/
+
+--ActualiarPedido
+
+CREATE OR REPLACE PROCEDURE ActualizarPedido (
+    p_Id_Pedido IN INTEGER,
+    p_Id_Sucursal IN INTEGER,
+    p_Descripcion_Pedido IN VARCHAR2,
+    p_Estado_Pedido IN VARCHAR2
+) AS
+BEGIN
+    UPDATE Pedido
+    SET Id_Sucursal = p_Id_Sucursal, Descripcion_Pedido = p_Descripcion_Pedido, Estado_Pedido = p_Estado_Pedido
+    WHERE Id_Pedido = p_Id_Pedido;
+    COMMIT;
+END ActualizarPedido;
+/
+
+--EliminarPedido
+CREATE OR REPLACE PROCEDURE EliminarPedido (
+    p_Id_Pedido IN INTEGER
+) AS
+BEGIN
+    DELETE FROM Pedido WHERE Id_Pedido = p_Id_Pedido;
+    COMMIT;
+END EliminarPedido;
+/
+
+--Procedimientos Productos
+
+--CrearProducto
+CREATE OR REPLACE PROCEDURE CrearProducto (
+    p_Id_Pedido IN INTEGER,
+    p_Nombre_Producto IN VARCHAR2,
+    p_Descripcion_Producto IN VARCHAR2,
+    p_Cantidad_Producto IN INTEGER,
+    p_Fecha_Vencimiento IN DATE
+) AS
+BEGIN
+    INSERT INTO Producto (Id_Producto, Id_Pedido, Nombre_Producto, Descripcion_Producto, Cantidad_Producto, Fecha_Vencimiento)
+    VALUES (Producto_Seq.NEXTVAL, p_Id_Pedido, p_Nombre_Producto, p_Descripcion_Producto, p_Cantidad_Producto, p_Fecha_Vencimiento);
+    COMMIT;
+END CrearProducto;
+/
+--LeerProducto
+CREATE OR REPLACE PROCEDURE LeerProducto (
+    p_Id_Producto IN INTEGER,
+    p_Id_Pedido OUT INTEGER,
+    p_Nombre_Producto OUT VARCHAR2,
+    p_Descripcion_Producto OUT VARCHAR2,
+    p_Cantidad_Producto OUT INTEGER,
+    p_Fecha_Vencimiento OUT DATE
+) AS
+BEGIN
+    SELECT Id_Pedido, Nombre_Producto, Descripcion_Producto, Cantidad_Producto, Fecha_Vencimiento
+    INTO p_Id_Pedido, p_Nombre_Producto, p_Descripcion_Producto, p_Cantidad_Producto, p_Fecha_Vencimiento
+    FROM Producto
+    WHERE Id_Producto = p_Id_Producto;
+END LeerProducto;
+/
+--AcutalizarProducto
+CREATE OR REPLACE PROCEDURE ActualizarProducto (
+    p_Id_Producto IN INTEGER,
+    p_Id_Pedido IN INTEGER,
+    p_Nombre_Producto IN VARCHAR2,
+    p_Descripcion_Producto IN VARCHAR2,
+    p_Cantidad_Producto IN INTEGER,
+    p_Fecha_Vencimiento IN DATE
+) AS
+BEGIN
+    UPDATE Producto
+    SET Id_Pedido = p_Id_Pedido, Nombre_Producto = p_Nombre_Producto, Descripcion_Producto = p_Descripcion_Producto,
+        Cantidad_Producto = p_Cantidad_Producto, Fecha_Vencimiento = p_Fecha_Vencimiento
+    WHERE Id_Producto = p_Id_Producto;
+    COMMIT;
+END ActualizarProducto;
+/
+--EliminarProducto
+CREATE OR REPLACE PROCEDURE EliminarProducto (
+    p_Id_Producto IN INTEGER
+) AS
+BEGIN
+    DELETE FROM Producto WHERE Id_Producto = p_Id_Producto;
+    COMMIT;
+END EliminarProducto;
+/
+
+--Procedimientos almacenados
+--CrearInformacionContacto
+CREATE OR REPLACE PROCEDURE CrearInformacionContacto (
+    p_Id_Empleado IN INTEGER,
+    p_Email_Empleado IN VARCHAR2,
+    p_Telefono_Empleado IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO Informacion_Contacto (Id_Contacto, Id_Empleado, Email_Empleado, Telefono_Empleado)
+    VALUES (Informacion_Contacto_Seq.NEXTVAL, p_Id_Empleado, p_Email_Empleado, p_Telefono_Empleado);
+    COMMIT;
+END CrearInformacionContacto;
+/
+--LeerInformacionContacto
+CREATE OR REPLACE PROCEDURE LeerInformacionContacto (
+    p_Id_Contacto IN INTEGER,
+    p_Id_Empleado OUT INTEGER,
+    p_Email_Empleado OUT VARCHAR2,
+    p_Telefono_Empleado OUT VARCHAR2
+) AS
+BEGIN
+    SELECT Id_Empleado, Email_Empleado, Telefono_Empleado
+    INTO p_Id_Empleado, p_Email_Empleado, p_Telefono_Empleado
+    FROM Informacion_Contacto
+    WHERE Id_Contacto = p_Id_Contacto;
+END LeerInformacionContacto;
+/
+--ActualizarInformacionContacto
+CREATE OR REPLACE PROCEDURE ActualizarInformacionContacto (
+    p_Id_Contacto IN INTEGER,
+    p_Id_Empleado IN INTEGER,
+    p_Email_Empleado IN VARCHAR2,
+    p_Telefono_Empleado IN VARCHAR2
+) AS
+BEGIN
+    UPDATE Informacion_Contacto
+    SET Id_Empleado = p_Id_Empleado, Email_Empleado = p_Email_Empleado, Telefono_Empleado = p_Telefono_Empleado
+    WHERE Id_Contacto = p_Id_Contacto;
+    COMMIT;
+END ActualizarInformacionContacto;
+/
+--EliminarInformacionContacto
+CREATE OR REPLACE PROCEDURE EliminarInformacionContacto (
+    p_Id_Contacto IN INTEGER
+) AS
+BEGIN
+    DELETE FROM Informacion_Contacto WHERE Id_Contacto = p_Id_Contacto;
+    COMMIT;
+END EliminarInformacionContacto;
+/
+
+--Procedimientos Empleado
+--CrearEmpleado
+CREATE OR REPLACE PROCEDURE CrearEmpleado (
+    p_Id_Sucursal IN INTEGER,
+    p_Nombre_Empleado IN VARCHAR2,
+    p_Apellido_Empleado IN VARCHAR2,
+    p_Estado_Empleado IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO Empleado (Id_Empleado, Id_Sucursal, Nombre_Empleado, Apellido_Empleado, Estado_Empleado)
+    VALUES (Empleado_Seq.NEXTVAL, p_Id_Sucursal, p_Nombre_Empleado, p_Apellido_Empleado, p_Estado_Empleado);
+    COMMIT;
+END CrearEmpleado;
+/
+
+--LeerEmpleado
+CREATE OR REPLACE PROCEDURE LeerEmpleado (
+    p_Id_Empleado IN INTEGER,
+    p_Id_Sucursal OUT INTEGER,
+    p_Nombre_Empleado OUT VARCHAR2,
+    p_Apellido_Empleado OUT VARCHAR2,
+    p_Estado_Empleado OUT VARCHAR2
+) AS
+BEGIN
+    SELECT Id_Sucursal, Nombre_Empleado, Apellido_Empleado, Estado_Empleado
+    INTO p_Id_Sucursal, p_Nombre_Empleado, p_Apellido_Empleado, p_Estado_Empleado
+    FROM Empleado
+    WHERE Id_Empleado = p_Id_Empleado;
+END LeerEmpleado;
+/
+
+--ActualizarEmpleado
+CREATE OR REPLACE PROCEDURE ActualizarEmpleado (
+    p_Id_Empleado IN INTEGER,
+    p_Id_Sucursal IN INTEGER,
+    p_Nombre_Empleado IN VARCHAR2,
+    p_Apellido_Empleado IN VARCHAR2,
+    p_Estado_Empleado IN VARCHAR2
+) AS
+BEGIN
+    UPDATE Empleado
+    SET Id_Sucursal = p_Id_Sucursal, Nombre_Empleado = p_Nombre_Empleado, Apellido_Empleado = p_Apellido_Empleado,
+        Estado_Empleado = p_Estado_Empleado
+    WHERE Id_Empleado = p_Id_Empleado;
+    COMMIT;
+END ActualizarEmpleado;
+/
+
+--EliminarEmpleado
+CREATE OR REPLACE PROCEDURE EliminarEmpleado (
+    p_Id_Empleado IN INTEGER
+) AS
+BEGIN
+    DELETE FROM Empleado WHERE Id_Empleado = p_Id_Empleado;
+    COMMIT;
+END EliminarEmpleado;
+/
+
+--Vista de detalles del pedido
+
+CREATE VIEW Vista_Detalles_Pedido AS
+SELECT P.Id_Pedido, S.Nombre_Sucursal, P.Descripcion_Pedido, P.Estado_Pedido
+FROM Pedido P
+INNER JOIN Sucursal S ON P.Id_Sucursal = S.Id_Sucursal;
+
+--Vista de empleados activos
+CREATE VIEW Vista_Empleados_Activos AS
+SELECT E.Id_Empleado, E.Nombre_Empleado, E.Apellido_Empleado
+FROM Empleado E
+WHERE E.Estado_Empleado = 'Activo';
+
+--Vista de productos vencidos
+CREATE VIEW Vista_Productos_Vencidos AS
+SELECT P.Id_Producto, P.Nombre_Producto, P.Fecha_Vencimiento
+FROM Producto P
+WHERE P.Fecha_Vencimiento < SYSDATE;
+
+--Vista de Sucursales y sus direcciones
+CREATE VIEW Vista_Sucursales_Direcciones AS
+SELECT S.Id_Sucursal, S.Nombre_Sucursal, D.Provincia, D.Canton, D.Distrito
+FROM Sucursal S
+INNER JOIN Direccion D ON S.Id_Direccion = D.Id_Direccion;
+
+--Vista de pedidos pendientes
+CREATE VIEW Vista_Pedidos_Pendientes AS
+SELECT P.Id_Pedido, S.Nombre_Sucursal, P.Descripcion_Pedido
+FROM Pedido P
+INNER JOIN Sucursal S ON P.Id_Sucursal = S.Id_Sucursal
+WHERE P.Estado_Pedido = 'Pendiente';
+
+
+--Vista de empleados por sucursal
+CREATE VIEW Vista_Empleados_Por_Sucursal AS
+SELECT S.Nombre_Sucursal, E.Nombre_Empleado, E.Apellido_Empleado
+FROM Empleado E
+INNER JOIN Sucursal S ON E.Id_Sucursal = S.Id_Sucursal;
+
+--Vista de productos en stock por pedido
+CREATE VIEW Vista_Productos_En_Stock AS
+SELECT P.Id_Pedido, P.Nombre_Producto, SUM(P.Cantidad_Producto) AS Cantidad_En_Stock
+FROM Producto P
+GROUP BY P.Id_Pedido, P.Nombre_Producto;
+--Vista de empleados con información de contacto
+CREATE VIEW Vista_Empleados_Contacto AS
+SELECT E.Id_Empleado, E.Nombre_Empleado, E.Apellido_Empleado, IC.Email_Empleado, IC.Telefono_Empleado
+FROM Empleado E
+LEFT JOIN Informacion_Contacto IC ON E.Id_Empleado = IC.Id_Empleado;
+--Vista de pedidos por sucursal y estado
+CREATE VIEW Vista_Pedidos_Por_Sucursal_Estado AS
+SELECT S.Nombre_Sucursal, P.Estado_Pedido, COUNT(*) AS Cantidad_Pedidos
+FROM Pedido P
+INNER JOIN Sucursal S ON P.Id_Sucursal = S.Id_Sucursal
+GROUP BY S.Nombre_Sucursal, P.Estado_Pedido;
+
+--Vista con pedidos y fechas
+CREATE VIEW Vista_Pedidos_Sucursal_Fecha AS
+SELECT S.Id_Sucursal, S.Nombre_Sucursal, P.Id_Pedido, P.Descripcion_Pedido, P.Estado_Pedido, PR.Fecha_Vencimiento
+FROM Sucursal S
+INNER JOIN Pedido P ON S.Id_Sucursal = P.Id_Sucursal
+INNER JOIN Producto PR ON P.Id_Pedido = PR.Id_Pedido;
+
+
+

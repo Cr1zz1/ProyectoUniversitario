@@ -1,0 +1,131 @@
+/*
+Grupo#4
+Practica 03
+1-Steven Cruz Jimenez
+2-Jean Carlos Orozco Mendez
+3-Cristofer Andres Marin Lazo
+4-Herberth Rojas Arce
+*/
+
+/*
+1.	Crear un select que liste 
+los registros cuyos números de teléfono inicien con (0 -  5 - 2) y
+que finalice en 1 o 8 además que la tercera letra del nombre sea una vocal.
+*/
+SELECT * FROM EMPLOYEES
+WHERE
+(SUBSTR(PHONE_NUMBER, 1, 1) IN ('0', '5', '2') OR
+    SUBSTR(PHONE_NUMBER, 2, 1) IN ('0', '5', '2') OR
+    SUBSTR(PHONE_NUMBER, 3, 1) IN ('0', '5', '2'))
+AND (SUBSTR(PHONE_NUMBER, -1) IN ('1', '8'))
+AND (SUBSTR(FIRST_NAME, 3, 1) IN ('a', 'e','i','o','u'));
+
+/*
+2.	Realice una consulta de
+muestre el nombre, el apellido y nombre
+de departamento de los empleados cuyo número 
+telefónico consta 12 caracteres (código de país (3),
+código de área (3), número telefono. (4)) el código de país inicia
+con 0 y tiene números impares en la posición 2y3 , el código
+de área solo números impares y el  número de teléfono debe de
+terminar con los números del 1  al 5
+*/
+
+SELECT e.FIRST_NAME, e.LAST_NAME, d.DEPARTMENT_NAME
+FROM EMPLOYEES e
+JOIN DEPARTMENTS d ON e.DEPARTMENT_ID = d.DEPARTMENT_ID
+WHERE
+    LENGTH(e.PHONE_NUMBER) = 12
+    AND SUBSTR(e.PHONE_NUMBER, 1, 1) = '0'
+    AND TO_NUMBER(SUBSTR(e.PHONE_NUMBER, 2, 1), '999') IN (1, 3, 5, 7, 9)
+    AND TO_NUMBER(SUBSTR(e.PHONE_NUMBER, 3, 1), '999') IN (1, 3, 5, 7, 9)
+    AND TO_NUMBER(SUBSTR(e.PHONE_NUMBER, 4, 1), '999') IN (1, 3, 5)
+    AND TO_NUMBER(SUBSTR(e.PHONE_NUMBER, -1), '999') BETWEEN 1 AND 5;
+
+/*
+3.	Dada la siguiente hilera cambie los espacios en blanco por comas,
+utilice REGEXP_REPLACE 
+
+ Elizabeth   Bishop   36736-36738   976.063  02/08/1911
+
+*/
+SELECT REGEXP_REPLACE('Elizabeth  Bishop 36736-36738  976.063  02/08/1911',
+' +', ', '  ) AS hielera_modificada FROM dual;
+
+/*
+4.Dada la siguiente hilera, proceda a dejar eliminar los espacios repetidos y 
+deje solo un espacio entre palabra y palabra, utilice REGEXP_REPLACE.
+      500    Oracle     Parkway,    Redwood  Shores,    CA
+*/
+
+SELECT REGEXP_REPLACE('500  ORACLE  Parkway,  Redwood  Shores,  CA', ' +', ' ')
+AS hilera_modificada FROM dual;
+
+/*
+5.	En la tabla employees por medio de una expresión regular separe por medio
+de un espacio cada una de las letras de la columna Country_name, utilice 
+REGEXP_REPLACE
+              Australia  ? A u s t r a l i a
+*/
+
+SELECT Country_name,
+    REGEXP_REPLACE(Country_name, '([[:alpha:]])', '\1 ', 1, 0) AS 
+    SEPARATED_COUNTRY_NAME
+FROM COUNTRIES;
+
+/*
+6. Desarrolle una consulta que liste los países por región, los datos que debe
+mostrar son: el código de la región y nombre de la región con los nombres 
+de sus países.
+*/
+
+SELECT r.region_id AS "Código de Región",
+       r.region_name  AS "Nombre de Región",
+       LISTAGG(c.country_name, ', ')WITHIN GROUP (ORDER BY c.country_name) AS
+       "Países en la Región"
+FROM regions r
+JOIN countries c ON r.region_id = c.region_id
+GROUP BY r.region_id, r.region_name;
+
+/*
+7.	Realice una consulta que muestre el código, nombre, apellido, inicio y
+fin del historial de trabajo de los empleados.
+*/
+
+SELECT e.employee_id AS "Código de Empleado",
+       e.first_name AS "Nombre",
+       e.last_name AS "Apellido",
+       jh.start_date AS "Inicio de Trabajo",
+       jh.end_date AS "Fin de Trabajo"
+FROM EMPLOYEES e
+JOIN job_history jh ON e.employee_id = jh.employee_id
+JOIN jobs j ON jh.job_id = j.job_id;
+
+/*
+8.	Realice una consulta que muestres el código de la región, nombre de
+la región y el nombre de los países que se encuentran en “Asia”.
+*/
+SELECT r.region_id AS "Código de Región",r.region_name AS "Nombre de Región",
+LISTAGG(c.country_name, ', ') WITHIN GROUP (ORDER BY c.country_name) AS
+"Países en la Región"      
+FROM regions r
+JOIN countries c ON r.region_id = c.region_id
+WHERE r.region_name = 'Asia'
+GROUP BY r.region_id, r.region_name;
+
+/*
+9.	Crea un select que presente en pantalla el nombre y apellido del empleado,
+el departamento donde trabaja, el salario y utilizando la 
+sentencia DECODE escriba el mensaje “Con comisión” para los empleados que
+tienen comisión y “Sin comisión” para los que no tienen.
+*/
+SELECT 
+    FIRST_NAME || ' ' || LAST_NAME AS "Nombre y Apellido",
+    department_name AS "Departamento",
+    salary AS "Salario",
+    DECODE(commission_pct, NULL, 'Sin comisión', 'Con comisión') AS "Comisión"
+FROM 
+    EMPLOYEES
+JOIN
+    DEPARTMENTS ON EMPLOYEES.department_id = departments.department_id;
+
